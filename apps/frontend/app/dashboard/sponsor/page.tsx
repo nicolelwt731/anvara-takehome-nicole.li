@@ -10,6 +10,7 @@ async function getCampaigns(sponsorId: string) {
   try {
     const res = await fetch(`${API_URL}/api/campaigns?sponsorId=${sponsorId}`, {
       cache: 'no-store',
+      credentials: 'include',
     });
     if (!res.ok) {
       throw new Error('Failed to fetch campaigns');

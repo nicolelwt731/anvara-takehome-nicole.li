@@ -10,6 +10,7 @@ async function getAdSlots(publisherId: string) {
   try {
     const res = await fetch(`${API_URL}/api/ad-slots?publisherId=${publisherId}`, {
       cache: 'no-store',
+      credentials: 'include',
     });
     if (!res.ok) {
       throw new Error('Failed to fetch ad slots');

@@ -1,22 +1,27 @@
-import { Router, type Request, type Response, type IRouter } from 'express';
+import { Router, type Response, type IRouter } from 'express';
 import { prisma } from '../db.js';
 import { getParam } from '../utils/helpers.js';
+import { requireAuth, requireRole, type AuthRequest } from '../auth.js';
 
 const router: IRouter = Router();
 
-// GET /api/ad-slots - List available ad slots
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { publisherId, type, available } = req.query;
+    const { type, available } = req.query;
+
+    const where: Record<string, unknown> = {
+      ...(type && {
+        type: type as string as 'DISPLAY' | 'VIDEO' | 'NATIVE' | 'NEWSLETTER' | 'PODCAST',
+      }),
+      ...(available === 'true' && { isAvailable: true }),
+    };
+
+    if (req.user?.role === 'publisher') {
+      where.publisherId = req.user.publisherId;
+    }
 
     const adSlots = await prisma.adSlot.findMany({
-      where: {
-        ...(publisherId && { publisherId: getParam(publisherId) }),
-        ...(type && {
-          type: type as string as 'DISPLAY' | 'VIDEO' | 'NATIVE' | 'NEWSLETTER' | 'PODCAST',
-        }),
-        ...(available === 'true' && { isAvailable: true }),
-      },
+      where,
       include: {
         publisher: { select: { id: true, name: true, category: true, monthlyViews: true } },
         _count: { select: { placements: true } },
@@ -25,14 +30,12 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     res.json(adSlots);
-  } catch (error) {
-    console.error('Error fetching ad slots:', error);
+  } catch {
     res.status(500).json({ error: 'Failed to fetch ad slots' });
   }
 });
 
-// GET /api/ad-slots/:id - Get single ad slot with details
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const id = getParam(req.params.id);
     const adSlot = await prisma.adSlot.findUnique({
@@ -52,30 +55,37 @@ router.get('/:id', async (req: Request, res: Response) => {
       return;
     }
 
+    if (req.user?.role === 'publisher' && adSlot.publisherId !== req.user.publisherId) {
+      res.status(403).json({ error: 'Forbidden - Cannot access another publisher\'s ad slot' });
+      return;
+    }
+
     res.json(adSlot);
-  } catch (error) {
-    console.error('Error fetching ad slot:', error);
+  } catch {
     res.status(500).json({ error: 'Failed to fetch ad slot' });
   }
 });
 
-// POST /api/ad-slots - Create new ad slot
-// BUG: This accepts 'dimensions' and 'pricingModel' fields that don't exist in Prisma schema
-// BUG: No input validation for basePrice (could be negative or zero)
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireRole(['publisher']), async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, type, dimensions, basePrice, pricingModel, publisherId } = req.body;
+    const { name, description, type, basePrice, width, height, position } = req.body;
 
-    if (!name || !type || !basePrice || !publisherId) {
+    if (!name || !type || !basePrice) {
       res.status(400).json({
-        error: 'Name, type, basePrice, and publisherId are required',
+        error: 'Name, type, and basePrice are required',
       });
       return;
     }
 
-    // TODO: Add authentication middleware to verify user owns publisherId
-    // TODO: Validate that basePrice is positive
-    // TODO: Validate that 'type' is valid enum value
+    if (basePrice <= 0) {
+      res.status(400).json({ error: 'Base price must be positive' });
+      return;
+    }
+
+    if (!req.user?.publisherId) {
+      res.status(403).json({ error: 'Forbidden - Not a publisher' });
+      return;
+    }
 
     const adSlot = await prisma.adSlot.create({
       data: {
@@ -83,7 +93,10 @@ router.post('/', async (req: Request, res: Response) => {
         description,
         type,
         basePrice,
-        publisherId,
+        width,
+        height,
+        position,
+        publisherId: req.user.publisherId,
       },
       include: {
         publisher: { select: { id: true, name: true } },
@@ -91,25 +104,15 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     res.status(201).json(adSlot);
-  } catch (error) {
-    console.error('Error creating ad slot:', error);
+  } catch {
     res.status(500).json({ error: 'Failed to create ad slot' });
   }
 });
 
-// POST /api/ad-slots/:id/book - Book an ad slot (simplified booking flow)
-// This marks the slot as unavailable and creates a simple booking record
-router.post('/:id/book', async (req: Request, res: Response) => {
+router.post('/:id/book', requireAuth, requireRole(['sponsor']), async (req: AuthRequest, res: Response) => {
   try {
     const id = getParam(req.params.id);
-    const { sponsorId, message } = req.body;
 
-    if (!sponsorId) {
-      res.status(400).json({ error: 'sponsorId is required' });
-      return;
-    }
-
-    // Check if slot exists and is available
     const adSlot = await prisma.adSlot.findUnique({
       where: { id },
       include: { publisher: true },
@@ -125,7 +128,6 @@ router.post('/:id/book', async (req: Request, res: Response) => {
       return;
     }
 
-    // Mark slot as unavailable
     const updatedSlot = await prisma.adSlot.update({
       where: { id },
       data: { isAvailable: false },
@@ -134,25 +136,34 @@ router.post('/:id/book', async (req: Request, res: Response) => {
       },
     });
 
-    // In a real app, you'd create a Placement record here
-    // For now, we just mark it as booked
-    console.log(`Ad slot ${id} booked by sponsor ${sponsorId}. Message: ${message || 'None'}`);
-
     res.json({
       success: true,
       message: 'Ad slot booked successfully!',
       adSlot: updatedSlot,
     });
-  } catch (error) {
-    console.error('Error booking ad slot:', error);
+  } catch {
     res.status(500).json({ error: 'Failed to book ad slot' });
   }
 });
 
-// POST /api/ad-slots/:id/unbook - Reset ad slot to available (for testing)
-router.post('/:id/unbook', async (req: Request, res: Response) => {
+router.post('/:id/unbook', requireAuth, requireRole(['publisher']), async (req: AuthRequest, res: Response) => {
   try {
     const id = getParam(req.params.id);
+
+    const adSlot = await prisma.adSlot.findUnique({
+      where: { id },
+      select: { publisherId: true },
+    });
+
+    if (!adSlot) {
+      res.status(404).json({ error: 'Ad slot not found' });
+      return;
+    }
+
+    if (adSlot.publisherId !== req.user?.publisherId) {
+      res.status(403).json({ error: 'Forbidden - Cannot unbook another publisher\'s ad slot' });
+      return;
+    }
 
     const updatedSlot = await prisma.adSlot.update({
       where: { id },
@@ -167,13 +178,84 @@ router.post('/:id/unbook', async (req: Request, res: Response) => {
       message: 'Ad slot is now available again',
       adSlot: updatedSlot,
     });
-  } catch (error) {
-    console.error('Error unbooking ad slot:', error);
+  } catch {
     res.status(500).json({ error: 'Failed to unbook ad slot' });
   }
 });
 
-// TODO: Add PUT /api/ad-slots/:id endpoint
-// TODO: Add DELETE /api/ad-slots/:id endpoint
+router.put('/:id', requireAuth, requireRole(['publisher']), async (req: AuthRequest, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+    const { name, description, type, basePrice, width, height, position, isAvailable } = req.body;
+
+    const existingSlot = await prisma.adSlot.findUnique({
+      where: { id },
+      select: { publisherId: true },
+    });
+
+    if (!existingSlot) {
+      res.status(404).json({ error: 'Ad slot not found' });
+      return;
+    }
+
+    if (existingSlot.publisherId !== req.user?.publisherId) {
+      res.status(403).json({ error: 'Forbidden - Cannot update another publisher\'s ad slot' });
+      return;
+    }
+
+    if (basePrice !== undefined && basePrice <= 0) {
+      res.status(400).json({ error: 'Base price must be positive' });
+      return;
+    }
+
+    const adSlot = await prisma.adSlot.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(type !== undefined && { type }),
+        ...(basePrice !== undefined && { basePrice }),
+        ...(width !== undefined && { width }),
+        ...(height !== undefined && { height }),
+        ...(position !== undefined && { position }),
+        ...(isAvailable !== undefined && { isAvailable }),
+      },
+      include: {
+        publisher: { select: { id: true, name: true } },
+      },
+    });
+
+    res.json(adSlot);
+  } catch {
+    res.status(500).json({ error: 'Failed to update ad slot' });
+  }
+});
+
+router.delete('/:id', requireAuth, requireRole(['publisher']), async (req: AuthRequest, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+
+    const existingSlot = await prisma.adSlot.findUnique({
+      where: { id },
+      select: { publisherId: true },
+    });
+
+    if (!existingSlot) {
+      res.status(404).json({ error: 'Ad slot not found' });
+      return;
+    }
+
+    if (existingSlot.publisherId !== req.user?.publisherId) {
+      res.status(403).json({ error: 'Forbidden - Cannot delete another publisher\'s ad slot' });
+      return;
+    }
+
+    await prisma.adSlot.delete({ where: { id } });
+
+    res.json({ success: true, message: 'Ad slot deleted successfully' });
+  } catch {
+    res.status(500).json({ error: 'Failed to delete ad slot' });
+  }
+});
 
 export default router;

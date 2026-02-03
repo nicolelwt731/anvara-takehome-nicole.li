@@ -1,19 +1,17 @@
-// Simple API client
-// FIXME: This client has no error response parsing - when API returns { error: "..." },
-// we should extract and throw that message instead of generic "API request failed"
-
-// TODO: Add authentication token to requests
-// Hint: Include credentials: 'include' for cookie-based auth, or
-// add Authorization header for token-based auth
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
 export async function api<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${endpoint}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
+    credentials: 'include',
     ...options,
   });
-  if (!res.ok) throw new Error('API request failed');
+  
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'API request failed' }));
+    throw new Error(error.error || 'API request failed');
+  }
+  
   return res.json();
 }
 

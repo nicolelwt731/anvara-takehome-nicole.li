@@ -16,7 +16,8 @@ export interface RoleData {
 export async function getUserRole(userId: string): Promise<RoleData> {
   try {
     const res = await fetch(`${API_URL}/api/auth/role/${userId}`, {
-      cache: 'no-store', // Always fetch fresh role data
+      cache: 'no-store',
+      credentials: 'include',
     });
     if (!res.ok) {
       return { role: null };
