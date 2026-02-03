@@ -1,5 +1,3 @@
-'use client';
-
 interface AdSlotCardProps {
   adSlot: {
     id: string;
