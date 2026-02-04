@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-undef
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
 export type UserRole = 'sponsor' | 'publisher' | null;

@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
+// eslint-disable-next-line no-undef
+const API_URL = (process.env.NEXT_PUBLIC_API_URL as string) || 'http://localhost:4291';
 
 interface FormState {
   success?: boolean;
@@ -76,16 +77,14 @@ export async function createCampaign(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Failed to create campaign' }));
-      console.error('Create campaign error:', response.status, errorData);
       return { error: errorData.error || `Failed to create campaign (${response.status})` };
     }
 
-    const result = await response.json();
-    console.log('Campaign created successfully:', result.id);
+    await response.json();
 
     revalidatePath('/dashboard/sponsor');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'An unexpected error occurred' };
   }
 }
@@ -148,7 +147,7 @@ export async function updateCampaign(
     revalidatePath('/dashboard/sponsor');
     revalidatePath('/marketplace');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'An unexpected error occurred' };
   }
 }
@@ -170,7 +169,7 @@ export async function deleteCampaign(campaignId: string): Promise<FormState> {
     revalidatePath('/dashboard/sponsor');
     revalidatePath('/marketplace');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'An unexpected error occurred' };
   }
 }

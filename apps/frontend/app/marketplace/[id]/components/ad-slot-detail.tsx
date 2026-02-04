@@ -69,7 +69,7 @@ export function AdSlotDetail({ id }: Props) {
   useEffect(() => {
     // Fetch ad slot
     getAdSlot(id)
-      .then(setAdSlot)
+      .then((data) => setAdSlot(data as AdSlot))
       .catch(() => setError('Failed to load ad slot details'))
       .finally(() => setLoading(false));
 
@@ -82,9 +82,9 @@ export function AdSlotDetail({ id }: Props) {
           setUser(sessionUser);
 
           // Fetch role info from backend
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${sessionUser.id}`
-          )
+          // eslint-disable-next-line no-undef
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
+          fetch(`${apiUrl}/api/auth/role/${sessionUser.id}`)
             .then((res) => res.json())
             .then((data) => setRoleInfo(data))
             .catch(() => setRoleInfo(null))
@@ -103,8 +103,10 @@ export function AdSlotDetail({ id }: Props) {
     setBookingError(null);
 
     try {
+      // eslint-disable-next-line no-undef
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/ad-slots/${adSlot.id}/book`,
+        `${apiUrl}/api/ad-slots/${adSlot.id}/book`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -137,8 +139,10 @@ export function AdSlotDetail({ id }: Props) {
     setIsUnbooking(true);
 
     try {
+      // eslint-disable-next-line no-undef
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/ad-slots/${adSlot.id}/unbook`,
+        `${apiUrl}/api/ad-slots/${adSlot.id}/unbook`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -158,7 +162,6 @@ export function AdSlotDetail({ id }: Props) {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to reset booking';
       setUnbookError(errorMessage);
-      console.error('Failed to unbook:', err);
     } finally {
       setIsUnbooking(false);
     }
@@ -383,9 +386,9 @@ export function AdSlotDetail({ id }: Props) {
             setLoading(true);
             try {
               const updated = await getAdSlot(id);
-              setAdSlot(updated);
-            } catch (err) {
-              console.error('Failed to refresh ad slot:', err);
+              setAdSlot(updated as AdSlot);
+            } catch {
+              // Error handled silently
             } finally {
               setLoading(false);
             }

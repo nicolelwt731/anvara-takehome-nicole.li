@@ -11,14 +11,26 @@ const typeColors: Record<string, string> = {
   PODCAST: 'bg-orange-100 text-orange-700',
 };
 
+interface AdSlot {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  basePrice: number;
+  isAvailable: boolean;
+  publisher?: {
+    name: string;
+  };
+}
+
 export function AdSlotGrid() {
-  const [adSlots, setAdSlots] = useState<any[]>([]);
+  const [adSlots, setAdSlots] = useState<AdSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getAdSlots()
-      .then(setAdSlots)
+      .then((data) => setAdSlots(data as AdSlot[]))
       .catch(() => setError('Failed to load ad slots'))
       .finally(() => setLoading(false));
   }, []);

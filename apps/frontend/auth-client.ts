@@ -1,6 +1,7 @@
 import { createAuthClient } from 'better-auth/react';
 
 export const authClient = createAuthClient({
+  // eslint-disable-next-line no-undef
   baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:3847',
   fetchOptions: {
     credentials: 'include',

@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
+// eslint-disable-next-line no-undef
+const API_URL = (process.env.NEXT_PUBLIC_API_URL as string) || 'http://localhost:4291';
 
 interface FormState {
   success?: boolean;
@@ -70,17 +71,15 @@ export async function createAdSlot(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Failed to create ad slot' }));
-      console.error('Create ad slot error:', response.status, errorData);
       return { error: errorData.error || `Failed to create ad slot (${response.status})` };
     }
 
-    const result = await response.json();
-    console.log('Ad slot created successfully:', result.id);
+    await response.json();
 
     revalidatePath('/dashboard/publisher');
     revalidatePath('/marketplace');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'An unexpected error occurred' };
   }
 }
@@ -139,7 +138,7 @@ export async function updateAdSlot(
     revalidatePath('/dashboard/publisher');
     revalidatePath('/marketplace');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'An unexpected error occurred' };
   }
 }
@@ -161,7 +160,7 @@ export async function deleteAdSlot(adSlotId: string): Promise<FormState> {
     revalidatePath('/dashboard/publisher');
     revalidatePath('/marketplace');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'An unexpected error occurred' };
   }
 }

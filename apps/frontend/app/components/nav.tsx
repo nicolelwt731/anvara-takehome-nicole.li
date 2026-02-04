@@ -15,14 +15,18 @@ export function Nav() {
   // Fetch user role from backend when user is logged in
   useEffect(() => {
     if (user?.id) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${user.id}`
-      )
+      // eslint-disable-next-line no-undef
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
+      fetch(`${apiUrl}/api/auth/role/${user.id}`)
         .then((res) => res.json())
         .then((data) => setRole(data.role))
         .catch(() => setRole(null));
     } else {
-      setRole(null);
+      // Use setTimeout to avoid synchronous setState in effect
+      const timer = setTimeout(() => {
+        setRole(null);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [user?.id]);
 

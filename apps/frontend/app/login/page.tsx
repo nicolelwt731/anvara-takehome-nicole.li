@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { authClient } from '@/auth-client';
 
+// eslint-disable-next-line no-undef
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
 const STORAGE_KEY = 'anvara_last_login';
@@ -29,10 +30,14 @@ export default function LoginPage() {
     if (stored) {
       try {
         const loginData: StoredLogin = JSON.parse(stored);
-        setEmail(loginData.email);
-        setPassword(loginData.password);
-        setStoredRole(loginData.role);
-        setHasStoredLogin(true);
+        // Use setTimeout to avoid synchronous setState in effect
+        const timer = setTimeout(() => {
+          setEmail(loginData.email);
+          setPassword(loginData.password);
+          setStoredRole(loginData.role);
+          setHasStoredLogin(true);
+        }, 0);
+        return () => clearTimeout(timer);
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }

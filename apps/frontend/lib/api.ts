@@ -1,6 +1,7 @@
+// eslint-disable-next-line no-undef
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
-export async function api<T>(endpoint: string, options?: RequestInit): Promise<T> {
+export async function api<T>(endpoint: string, options?: globalThis.RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${endpoint}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     credentials: 'include',
@@ -17,24 +18,24 @@ export async function api<T>(endpoint: string, options?: RequestInit): Promise<T
 
 // Campaigns
 export const getCampaigns = (sponsorId?: string) =>
-  api<any[]>(sponsorId ? `/api/campaigns?sponsorId=${sponsorId}` : '/api/campaigns');
-export const getCampaign = (id: string) => api<any>(`/api/campaigns/${id}`);
-export const createCampaign = (data: any) =>
+  api<unknown[]>(sponsorId ? `/api/campaigns?sponsorId=${sponsorId}` : '/api/campaigns');
+export const getCampaign = (id: string) => api<unknown>(`/api/campaigns/${id}`);
+export const createCampaign = (data: unknown) =>
   api('/api/campaigns', { method: 'POST', body: JSON.stringify(data) });
 // TODO: Add updateCampaign and deleteCampaign functions
 
 // Ad Slots
 export const getAdSlots = (publisherId?: string) =>
-  api<any[]>(publisherId ? `/api/ad-slots?publisherId=${publisherId}` : '/api/ad-slots');
-export const getAdSlot = (id: string) => api<any>(`/api/ad-slots/${id}`);
-export const createAdSlot = (data: any) =>
+  api<unknown[]>(publisherId ? `/api/ad-slots?publisherId=${publisherId}` : '/api/ad-slots');
+export const getAdSlot = (id: string) => api<unknown>(`/api/ad-slots/${id}`);
+export const createAdSlot = (data: unknown) =>
   api('/api/ad-slots', { method: 'POST', body: JSON.stringify(data) });
 // TODO: Add updateAdSlot, deleteAdSlot functions
 
 // Placements
-export const getPlacements = () => api<any[]>('/api/placements');
-export const createPlacement = (data: any) =>
+export const getPlacements = () => api<unknown[]>('/api/placements');
+export const createPlacement = (data: unknown) =>
   api('/api/placements', { method: 'POST', body: JSON.stringify(data) });
 
 // Dashboard
-export const getStats = () => api<any>('/api/dashboard/stats');
+export const getStats = () => api<unknown>('/api/dashboard/stats');
