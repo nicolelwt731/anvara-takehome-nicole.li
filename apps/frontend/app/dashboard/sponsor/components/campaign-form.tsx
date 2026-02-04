@@ -147,7 +147,6 @@ export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
                 type="date"
                 id="startDate"
                 name="startDate"
-                defaultValue={campaign ? formatDateForInput(campaign.startDate) : ''}
                 value={startDate}
                 onChange={handleStartDateChange}
                 min={new Date().toISOString().split('T')[0]}
