@@ -1,8 +1,10 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { createCampaign, updateCampaign } from '../actions';
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Campaign {
   id: string;
@@ -21,7 +23,7 @@ interface CampaignFormProps {
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus();
-  
+
   return (
     <button
       type="submit"
@@ -36,21 +38,32 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
   const isEditing = Boolean(campaign);
   const formRef = useRef<HTMLFormElement>(null);
-  
+  const router = useRouter();
+  const [startDate, setStartDate] = useState<string>(
+    campaign ? campaign.startDate.split('T')[0] : ''
+  );
+
   const action = isEditing
     ? updateCampaign.bind(null, campaign!.id)
     : createCampaign;
-    
-  const [state, formAction] = useFormState(action, {});
+
+  const [state, formAction] = useActionState(action, {});
 
   useEffect(() => {
     if (state.success) {
       onClose();
+      setTimeout(() => {
+        router.replace('/dashboard/sponsor');
+      }, 100);
     }
-  }, [state.success, onClose]);
+  }, [state.success, onClose, router]);
 
   const formatDateForInput = (dateString: string) => {
     return dateString ? dateString.split('T')[0] : '';
+  };
+
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStartDate(e.target.value);
   };
 
   return (
@@ -135,7 +148,11 @@ export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
                 id="startDate"
                 name="startDate"
                 defaultValue={campaign ? formatDateForInput(campaign.startDate) : ''}
+                value={startDate}
+                onChange={handleStartDateChange}
+                min={new Date().toISOString().split('T')[0]}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                style={{ colorScheme: 'light' }}
                 required
               />
               {state.fieldErrors?.startDate && (
@@ -152,7 +169,9 @@ export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
                 id="endDate"
                 name="endDate"
                 defaultValue={campaign ? formatDateForInput(campaign.endDate) : ''}
+                min={startDate || campaign ? formatDateForInput(campaign?.startDate || '') : new Date().toISOString().split('T')[0]}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                style={{ colorScheme: 'light' }}
                 required
               />
               {state.fieldErrors?.endDate && (

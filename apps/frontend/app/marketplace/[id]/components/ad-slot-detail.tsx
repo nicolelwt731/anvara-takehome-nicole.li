@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getAdSlot } from '@/lib/api';
 import { authClient } from '@/auth-client';
+import { deleteAdSlot } from '@/app/dashboard/publisher/actions';
+import { AdSlotForm } from '@/app/dashboard/publisher/components/ad-slot-form';
 
 interface AdSlot {
   id: string;
@@ -12,6 +15,8 @@ interface AdSlot {
   type: string;
   basePrice: number;
   isAvailable: boolean;
+  width?: number;
+  height?: number;
   publisher?: {
     id: string;
     name: string;
@@ -54,6 +59,12 @@ export function AdSlotDetail({ id }: Props) {
   const [booking, setBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [unbookError, setUnbookError] = useState<string | null>(null);
+  const [isUnbooking, setIsUnbooking] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch ad slot
@@ -97,6 +108,7 @@ export function AdSlotDetail({ id }: Props) {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             sponsorId: roleInfo.sponsorId,
             message: message || undefined,
@@ -121,26 +133,55 @@ export function AdSlotDetail({ id }: Props) {
   const handleUnbook = async () => {
     if (!adSlot) return;
 
+    setUnbookError(null);
+    setIsUnbooking(true);
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/ad-slots/${adSlot.id}/unbook`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to reset booking');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to reset booking' }));
+        throw new Error(errorData.error || 'Failed to reset booking');
       }
 
       setBookingSuccess(false);
       setAdSlot({ ...adSlot, isAvailable: true });
       setMessage('');
+      router.refresh();
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reset booking';
+      setUnbookError(errorMessage);
       console.error('Failed to unbook:', err);
+    } finally {
+      setIsUnbooking(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (!adSlot) return;
+
+    if (!confirm(`Are you sure you want to delete "${adSlot.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    startDeleteTransition(async () => {
+      const result = await deleteAdSlot(adSlot.id);
+      if (result.error) {
+        setDeleteError(result.error);
+      } else {
+        router.push('/dashboard/publisher');
+      }
+    });
+  };
+
+  const isOwner = roleInfo?.role === 'publisher' && adSlot?.publisher?.id === roleInfo?.publisherId;
 
   if (loading) {
     return <div className="py-12 text-center text-[--color-muted]">Loading...</div>;
@@ -203,13 +244,19 @@ export function AdSlotDetail({ id }: Props) {
             >
               {adSlot.isAvailable ? '● Available' : '○ Currently Booked'}
             </span>
-            {!adSlot.isAvailable && !bookingSuccess && (
+            {!adSlot.isAvailable && !bookingSuccess && isOwner && (
               <button
                 onClick={handleUnbook}
-                className="ml-3 text-sm text-[--color-primary] underline hover:opacity-80"
+                disabled={isUnbooking}
+                className="ml-3 text-sm text-[--color-primary] underline hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Reset listing
+                {isUnbooking ? 'Resetting...' : 'Reset listing'}
               </button>
+            )}
+            {unbookError && (
+              <div className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-600">
+                {unbookError}
+              </div>
             )}
           </div>
           <div className="text-right">
@@ -219,6 +266,32 @@ export function AdSlotDetail({ id }: Props) {
             <p className="text-sm text-[--color-muted]">per month</p>
           </div>
         </div>
+
+        {isOwner && (
+          <div className="mt-4 border-t border-[--color-border] pt-4">
+            <h3 className="mb-2 text-sm font-semibold text-[--color-muted]">Owner Actions</h3>
+            {deleteError && (
+              <div className="mb-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-600">
+                {deleteError}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowEditForm(true)}
+                className="rounded border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Edit Ad Slot
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="rounded border border-red-600 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Ad Slot'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {adSlot.isAvailable && !bookingSuccess && (
           <div className="mt-6 border-t border-[--color-border] pt-6">
@@ -292,6 +365,33 @@ export function AdSlotDetail({ id }: Props) {
           </div>
         )}
       </div>
+
+      {showEditForm && adSlot && (
+        <AdSlotForm
+          adSlot={{
+            id: adSlot.id,
+            name: adSlot.name,
+            description: adSlot.description,
+            type: adSlot.type,
+            basePrice: adSlot.basePrice,
+            width: adSlot.width,
+            height: adSlot.height,
+            isAvailable: adSlot.isAvailable,
+          }}
+          onClose={async () => {
+            setShowEditForm(false);
+            setLoading(true);
+            try {
+              const updated = await getAdSlot(id);
+              setAdSlot(updated);
+            } catch (err) {
+              console.error('Failed to refresh ad slot:', err);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

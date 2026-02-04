@@ -13,11 +13,15 @@ interface FormState {
 
 async function getAuthHeaders() {
   const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('better-auth.session_token');
-  
+  const allCookies = cookieStore.getAll();
+
+  const cookieHeader = allCookies
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join('; ');
+
   return {
     'Content-Type': 'application/json',
-    ...(sessionToken && { Cookie: `better-auth.session_token=${sessionToken.value}` }),
+    ...(cookieHeader && { Cookie: cookieHeader }),
   };
 }
 
@@ -71,9 +75,13 @@ export async function createCampaign(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      return { error: error.error || 'Failed to create campaign' };
+      const errorData = await response.json().catch(() => ({ error: 'Failed to create campaign' }));
+      console.error('Create campaign error:', response.status, errorData);
+      return { error: errorData.error || `Failed to create campaign (${response.status})` };
     }
+
+    const result = await response.json();
+    console.log('Campaign created successfully:', result.id);
 
     revalidatePath('/dashboard/sponsor');
     return { success: true };
@@ -138,6 +146,7 @@ export async function updateCampaign(
     }
 
     revalidatePath('/dashboard/sponsor');
+    revalidatePath('/marketplace');
     return { success: true };
   } catch (error) {
     return { error: 'An unexpected error occurred' };
@@ -159,6 +168,7 @@ export async function deleteCampaign(campaignId: string): Promise<FormState> {
     }
 
     revalidatePath('/dashboard/sponsor');
+    revalidatePath('/marketplace');
     return { success: true };
   } catch (error) {
     return { error: 'An unexpected error occurred' };

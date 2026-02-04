@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "clean:ports": "lsof -ti:3847,4291,5555 | xargs kill -9 2>/dev/null || echo 'All ports are free'",
     "dev": "pnpm -r dev",
     "e2e": "pnpm -r e2e",
     "format": "pnpm -r format",

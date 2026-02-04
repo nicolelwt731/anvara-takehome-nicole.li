@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { deleteCampaign } from '../actions';
 import { CampaignForm } from './campaign-form';
 
@@ -28,7 +29,8 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  
+  const router = useRouter();
+
   const progress =
     campaign.budget > 0 ? (Number(campaign.spent) / Number(campaign.budget)) * 100 : 0;
 
@@ -41,6 +43,8 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
       const result = await deleteCampaign(campaign.id);
       if (result.error) {
         setError(result.error);
+      } else {
+        router.replace('/dashboard/sponsor');
       }
     });
   };
@@ -90,7 +94,7 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
         <div className="flex gap-2">
           <button
             onClick={() => setShowEditForm(true)}
-            className="flex-1 rounded border border-blue-600 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
+            className="flex-1 rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             Edit
           </button>

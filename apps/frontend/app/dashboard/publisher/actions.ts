@@ -13,11 +13,15 @@ interface FormState {
 
 async function getAuthHeaders() {
   const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('better-auth.session_token');
-  
+  const allCookies = cookieStore.getAll();
+
+  const cookieHeader = allCookies
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join('; ');
+
   return {
     'Content-Type': 'application/json',
-    ...(sessionToken && { Cookie: `better-auth.session_token=${sessionToken.value}` }),
+    ...(cookieHeader && { Cookie: cookieHeader }),
   };
 }
 
@@ -65,11 +69,16 @@ export async function createAdSlot(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      return { error: error.error || 'Failed to create ad slot' };
+      const errorData = await response.json().catch(() => ({ error: 'Failed to create ad slot' }));
+      console.error('Create ad slot error:', response.status, errorData);
+      return { error: errorData.error || `Failed to create ad slot (${response.status})` };
     }
 
+    const result = await response.json();
+    console.log('Ad slot created successfully:', result.id);
+
     revalidatePath('/dashboard/publisher');
+    revalidatePath('/marketplace');
     return { success: true };
   } catch (error) {
     return { error: 'An unexpected error occurred' };
@@ -128,6 +137,7 @@ export async function updateAdSlot(
     }
 
     revalidatePath('/dashboard/publisher');
+    revalidatePath('/marketplace');
     return { success: true };
   } catch (error) {
     return { error: 'An unexpected error occurred' };
@@ -149,6 +159,7 @@ export async function deleteAdSlot(adSlotId: string): Promise<FormState> {
     }
 
     revalidatePath('/dashboard/publisher');
+    revalidatePath('/marketplace');
     return { success: true };
   } catch (error) {
     return { error: 'An unexpected error occurred' };

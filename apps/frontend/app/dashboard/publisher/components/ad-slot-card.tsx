@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { deleteAdSlot } from '../actions';
 import { AdSlotForm } from './ad-slot-form';
 
@@ -29,6 +30,7 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete "${adSlot.name}"?`)) {
@@ -39,6 +41,8 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
       const result = await deleteAdSlot(adSlot.id);
       if (result.error) {
         setError(result.error);
+      } else {
+        router.replace('/dashboard/publisher');
       }
     });
   };
@@ -83,7 +87,7 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
         <div className="flex gap-2">
           <button
             onClick={() => setShowEditForm(true)}
-            className="flex-1 rounded border border-blue-600 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
+            className="flex-1 rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             Edit
           </button>

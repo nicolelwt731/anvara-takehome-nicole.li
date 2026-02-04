@@ -1,8 +1,10 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { createAdSlot, updateAdSlot } from '../actions';
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface AdSlot {
   id: string;
@@ -22,7 +24,7 @@ interface AdSlotFormProps {
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus();
-  
+
   return (
     <button
       type="submit"
@@ -37,18 +39,20 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export function AdSlotForm({ adSlot, onClose }: AdSlotFormProps) {
   const isEditing = Boolean(adSlot);
   const formRef = useRef<HTMLFormElement>(null);
-  
+  const router = useRouter();
+
   const action = isEditing
     ? updateAdSlot.bind(null, adSlot!.id)
     : createAdSlot;
-    
-  const [state, formAction] = useFormState(action, {});
+
+  const [state, formAction] = useActionState(action, {});
 
   useEffect(() => {
     if (state.success) {
       onClose();
+      router.replace('/dashboard/publisher');
     }
-  }, [state.success, onClose]);
+  }, [state.success, onClose, router]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
