@@ -359,11 +359,17 @@ export function AdSlotDetail({ id }: Props) {
             <p className="mt-1 text-sm text-green-700">
               Your request has been submitted. The publisher will be in touch soon.
             </p>
+            {unbookError && (
+              <div className="mt-3 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-600">
+                {unbookError}
+              </div>
+            )}
             <button
               onClick={handleUnbook}
-              className="mt-3 text-sm text-green-700 underline hover:text-green-800"
+              disabled={isUnbooking}
+              className="mt-3 text-sm text-green-700 underline hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Remove Booking (reset for testing)
+              {isUnbooking ? 'Removing...' : 'Remove Booking (reset for testing)'}
             </button>
           </div>
         )}

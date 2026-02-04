@@ -146,13 +146,13 @@ router.post('/:id/book', requireAuth, requireRole(['sponsor']), async (req: Auth
   }
 });
 
-router.post('/:id/unbook', requireAuth, requireRole(['publisher']), async (req: AuthRequest, res: Response) => {
+router.post('/:id/unbook', requireAuth, requireRole(['publisher', 'sponsor']), async (req: AuthRequest, res: Response) => {
   try {
     const id = getParam(req.params.id);
 
     const adSlot = await prisma.adSlot.findUnique({
       where: { id },
-      select: { publisherId: true },
+      select: { publisherId: true, isAvailable: true },
     });
 
     if (!adSlot) {
@@ -160,10 +160,19 @@ router.post('/:id/unbook', requireAuth, requireRole(['publisher']), async (req: 
       return;
     }
 
-    if (adSlot.publisherId !== req.user?.publisherId) {
+    if (adSlot.isAvailable) {
+      res.status(400).json({ error: 'Ad slot is already available' });
+      return;
+    }
+
+    // Publishers can only unbook their own ad slots
+    if (req.user?.role === 'publisher' && adSlot.publisherId !== req.user?.publisherId) {
       res.status(403).json({ error: 'Forbidden - Cannot unbook another publisher\'s ad slot' });
       return;
     }
+
+    // Sponsors can unbook any booked ad slot (since we don't track which sponsor booked it)
+    // In a production system, you'd want to track bookings and verify ownership
 
     const updatedSlot = await prisma.adSlot.update({
       where: { id },
