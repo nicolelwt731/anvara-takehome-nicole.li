@@ -14,10 +14,7 @@ type EventParams = {
   [key: string]: string | number | boolean | undefined;
 };
 
-export const trackEvent = (
-  eventName: string,
-  eventParams?: EventParams
-): void => {
+export const trackEvent = (eventName: string, eventParams?: EventParams): void => {
   if (!isGAEnabled()) return;
   try {
     gtag('event', eventName, {
@@ -31,17 +28,11 @@ export const trackEvent = (
   }
 };
 
-export const trackMicroConversion = (
-  eventName: string,
-  params?: EventParams
-): void => {
+export const trackMicroConversion = (eventName: string, params?: EventParams): void => {
   trackEvent(eventName, { conversion_level: 'micro', ...params });
 };
 
-export const trackMacroConversion = (
-  eventName: string,
-  params?: EventParams
-): void => {
+export const trackMacroConversion = (eventName: string, params?: EventParams): void => {
   trackEvent(eventName, { conversion_level: 'macro', ...params });
 };
 
