@@ -1,58 +1,66 @@
-/**
- * Google Analytics 4 Event Tracking Utility
- *
- * Provides type-safe event tracking functions for GA4.
- * All events follow GA4 recommended event naming conventions.
- */
+import { useEffect } from 'react';
 
-// eslint-disable-next-line no-undef
 declare const gtag: (
   command: 'event' | 'config' | 'set',
   targetId: string | { [key: string]: unknown },
   config?: { [key: string]: unknown }
 ) => void;
 
-/**
- * Check if Google Analytics is available
- */
 export const isGAEnabled = (): boolean => {
   return typeof window !== 'undefined' && typeof gtag !== 'undefined';
 };
 
-/**
- * Track a custom event
- */
+type EventParams = {
+  [key: string]: string | number | boolean | undefined;
+};
+
 export const trackEvent = (
   eventName: string,
-  eventParams?: {
-    [key: string]: string | number | boolean | undefined;
-  }
+  eventParams?: EventParams
 ): void => {
-  if (!isGAEnabled()) {
-    return;
-  }
-
+  if (!isGAEnabled()) return;
   try {
     gtag('event', eventName, {
       ...eventParams,
       timestamp: Date.now(),
     });
   } catch (error) {
-    // Silently fail in production, but could log in development
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
       console.warn('GA4 tracking error:', error);
     }
   }
 };
 
-/**
- * Track button click events
- */
+export const trackMicroConversion = (
+  eventName: string,
+  params?: EventParams
+): void => {
+  trackEvent(eventName, { conversion_level: 'micro', ...params });
+};
+
+export const trackMacroConversion = (
+  eventName: string,
+  params?: EventParams
+): void => {
+  trackEvent(eventName, { conversion_level: 'macro', ...params });
+};
+
+export function useConversionTrack(
+  level: 'micro' | 'macro',
+  eventName: string,
+  params?: EventParams,
+  deps: readonly unknown[] = []
+): void {
+  const track = level === 'macro' ? trackMacroConversion : trackMicroConversion;
+  useEffect(() => {
+    track(eventName, params);
+  }, deps);
+}
+
 export const trackButtonClick = (
   buttonName: string,
   location?: string,
-  additionalParams?: { [key: string]: string | number | boolean | undefined }
+  additionalParams?: EventParams
 ): void => {
   trackEvent('button_click', {
     button_name: buttonName,
@@ -61,14 +69,11 @@ export const trackButtonClick = (
   });
 };
 
-/**
- * Track form submission events
- */
 export const trackFormSubmit = (
   formName: string,
   formType: 'create' | 'update' | 'delete',
   success: boolean,
-  additionalParams?: { [key: string]: string | number | boolean | undefined }
+  additionalParams?: EventParams
 ): void => {
   trackEvent('form_submit', {
     form_name: formName,
@@ -78,13 +83,10 @@ export const trackFormSubmit = (
   });
 };
 
-/**
- * Track navigation events
- */
 export const trackNavigation = (
   destination: string,
   source?: string,
-  additionalParams?: { [key: string]: string | number | boolean | undefined }
+  additionalParams?: EventParams
 ): void => {
   trackEvent('page_view', {
     page_path: destination,
@@ -94,13 +96,10 @@ export const trackNavigation = (
   });
 };
 
-/**
- * Track user engagement events
- */
 export const trackUserEngagement = (
   action: 'login' | 'logout' | 'signup',
   userRole?: 'sponsor' | 'publisher',
-  additionalParams?: { [key: string]: string | number | boolean | undefined }
+  additionalParams?: EventParams
 ): void => {
   trackEvent('user_engagement', {
     engagement_type: action,
@@ -109,14 +108,11 @@ export const trackUserEngagement = (
   });
 };
 
-/**
- * Track marketplace-specific events
- */
 export const trackMarketplaceEvent = (
   eventType: 'view_listing' | 'book_placement' | 'unbook_placement' | 'view_detail',
   listingId?: string,
   listingType?: string,
-  additionalParams?: { [key: string]: string | number | boolean | undefined }
+  additionalParams?: EventParams
 ): void => {
   trackEvent('marketplace_interaction', {
     interaction_type: eventType,
@@ -126,14 +122,11 @@ export const trackMarketplaceEvent = (
   });
 };
 
-/**
- * Track campaign/ad slot management events
- */
 export const trackManagementEvent = (
   action: 'create' | 'update' | 'delete',
   resourceType: 'campaign' | 'ad_slot',
   resourceId?: string,
-  additionalParams?: { [key: string]: string | number | boolean | undefined }
+  additionalParams?: EventParams
 ): void => {
   trackEvent('resource_management', {
     action,

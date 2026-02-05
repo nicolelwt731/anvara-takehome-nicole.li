@@ -7,6 +7,7 @@ export default [
     languageOptions: {
       globals: {
         process: 'readonly',
+        gtag: 'readonly',
       },
     },
   },

@@ -7,7 +7,12 @@ import { getAdSlot } from '@/lib/api';
 import { authClient } from '@/auth-client';
 import { deleteAdSlot } from '@/app/dashboard/publisher/actions';
 import { AdSlotForm } from '@/app/dashboard/publisher/components/ad-slot-form';
-import { trackMarketplaceEvent, trackButtonClick } from '@/lib/analytics';
+import {
+  trackMarketplaceEvent,
+  trackButtonClick,
+  trackMicroConversion,
+  trackMacroConversion,
+} from '@/lib/analytics';
 
 interface AdSlot {
   id: string;
@@ -68,13 +73,18 @@ export function AdSlotDetail({ id }: Props) {
   const router = useRouter();
 
   useEffect(() => {
-    // Fetch ad slot
     getAdSlot(id)
       .then((data) => {
         const slot = data as AdSlot;
         setAdSlot(slot);
-        // Track listing detail view
         trackMarketplaceEvent('view_detail', slot.id, slot.type, {
+          listing_name: slot.name,
+          base_price: slot.basePrice,
+          is_available: slot.isAvailable,
+        });
+        trackMicroConversion('listing_detail_view', {
+          listing_id: slot.id,
+          listing_type: slot.type,
           listing_name: slot.name,
           base_price: slot.basePrice,
           is_available: slot.isAvailable,
@@ -83,7 +93,6 @@ export function AdSlotDetail({ id }: Props) {
       .catch(() => setError('Failed to load ad slot details'))
       .finally(() => setLoading(false));
 
-    // Check user session and fetch role
     authClient
       .getSession()
       .then(({ data }) => {
@@ -91,8 +100,6 @@ export function AdSlotDetail({ id }: Props) {
           const sessionUser = data.user as User;
           setUser(sessionUser);
 
-          // Fetch role info from backend
-          // eslint-disable-next-line no-undef
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
           fetch(`${apiUrl}/api/auth/role/${sessionUser.id}`)
             .then((res) => res.json())
@@ -109,18 +116,21 @@ export function AdSlotDetail({ id }: Props) {
   const handleBooking = async () => {
     if (!roleInfo?.sponsorId || !adSlot) return;
 
-    // Track button click
     trackButtonClick('Book This Placement', 'marketplace_detail', {
       listing_id: adSlot.id,
       listing_type: adSlot.type,
       listing_name: adSlot.name,
+    });
+    trackMicroConversion('cta_click', {
+      cta_name: 'request_placement',
+      listing_id: adSlot.id,
+      listing_type: adSlot.type,
     });
 
     setBooking(true);
     setBookingError(null);
 
     try {
-      // eslint-disable-next-line no-undef
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
       const response = await fetch(
         `${apiUrl}/api/ad-slots/${adSlot.id}/book`,
@@ -142,9 +152,15 @@ export function AdSlotDetail({ id }: Props) {
 
       setBookingSuccess(true);
       setAdSlot({ ...adSlot, isAvailable: false });
-      
-      // Track successful booking
+
       trackMarketplaceEvent('book_placement', adSlot.id, adSlot.type, {
+        listing_name: adSlot.name,
+        base_price: adSlot.basePrice,
+        has_message: Boolean(message),
+      });
+      trackMacroConversion('placement_request_submitted', {
+        listing_id: adSlot.id,
+        listing_type: adSlot.type,
         listing_name: adSlot.name,
         base_price: adSlot.basePrice,
         has_message: Boolean(message),
@@ -159,7 +175,6 @@ export function AdSlotDetail({ id }: Props) {
   const handleUnbook = async () => {
     if (!adSlot) return;
 
-    // Track button click
     trackButtonClick('Reset listing', 'marketplace_detail', {
       listing_id: adSlot.id,
       listing_type: adSlot.type,
@@ -169,7 +184,6 @@ export function AdSlotDetail({ id }: Props) {
     setIsUnbooking(true);
 
     try {
-      // eslint-disable-next-line no-undef
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
       const response = await fetch(
         `${apiUrl}/api/ad-slots/${adSlot.id}/unbook`,
@@ -188,8 +202,7 @@ export function AdSlotDetail({ id }: Props) {
       setBookingSuccess(false);
       setAdSlot({ ...adSlot, isAvailable: true });
       setMessage('');
-      
-      // Track successful unbooking
+
       trackMarketplaceEvent('unbook_placement', adSlot.id, adSlot.type, {
         listing_name: adSlot.name,
       });
@@ -430,7 +443,6 @@ export function AdSlotDetail({ id }: Props) {
               const updated = await getAdSlot(id);
               setAdSlot(updated as AdSlot);
             } catch {
-              // Error handled silently
             } finally {
               setLoading(false);
             }

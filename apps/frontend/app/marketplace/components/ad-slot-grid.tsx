@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getAdSlots } from '@/lib/api';
-import { trackMarketplaceEvent, trackButtonClick } from '@/lib/analytics';
+import {
+  trackMarketplaceEvent,
+  trackButtonClick,
+  trackMicroConversion,
+} from '@/lib/analytics';
 
 const typeColors: Record<string, string> = {
   DISPLAY: 'bg-blue-100 text-blue-700',
@@ -34,8 +38,11 @@ export function AdSlotGrid() {
       .then((data) => {
         const slots = data as AdSlot[];
         setAdSlots(slots);
-        // Track marketplace view
         trackMarketplaceEvent('view_listing', undefined, undefined, {
+          total_listings: slots.length,
+          available_listings: slots.filter((s) => s.isAvailable).length,
+        });
+        trackMicroConversion('marketplace_grid_view', {
           total_listings: slots.length,
           available_listings: slots.filter((s) => s.isAvailable).length,
         });
@@ -71,6 +78,11 @@ export function AdSlotGrid() {
               listing_id: slot.id,
               listing_type: slot.type,
               listing_name: slot.name,
+            });
+            trackMicroConversion('cta_click', {
+              cta_name: 'view_listing',
+              listing_id: slot.id,
+              listing_type: slot.type,
             });
             trackMarketplaceEvent('view_listing', slot.id, slot.type, {
               listing_name: slot.name,
