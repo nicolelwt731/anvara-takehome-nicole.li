@@ -1,20 +1,22 @@
 import { AdSlotGrid } from './components/ad-slot-grid';
-
-// FIXME: This page fetches all ad slots client-side. Consider:
-// 1. Server-side pagination with searchParams
-// 2. Filtering by category, price range, slot type
-// 3. Search functionality
+import { NewsletterSignup } from '../components/newsletter-signup';
 
 export default function MarketplacePage() {
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="space-y-8">
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold">Marketplace</h1>
-        <p className="text-[--color-muted]">Browse available ad slots from our publishers</p>
-        {/* TODO: Add search input and filter controls */}
+        <p className="text-[--color-muted]">Browse available ad slots from our publishers.</p>
       </div>
 
-      <AdSlotGrid />
+      <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
+        <div className="space-y-6">
+          <AdSlotGrid />
+        </div>
+        <div className="space-y-4">
+          <NewsletterSignup />
+        </div>
+      </div>
     </div>
   );
 }

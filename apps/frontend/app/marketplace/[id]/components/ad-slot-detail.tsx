@@ -13,7 +13,7 @@ import {
   trackMicroConversion,
   trackMacroConversion,
 } from '@/lib/analytics';
-import { useABTest } from '@/lib/ab-test';
+import { RequestQuoteModal } from './request-quote-modal';
 
 interface AdSlot {
   id: string;
@@ -71,10 +71,8 @@ export function AdSlotDetail({ id }: Props) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [unbookError, setUnbookError] = useState<string | null>(null);
   const [isUnbooking, setIsUnbooking] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
   const router = useRouter();
-  const ctaVariant = useABTest('cta-button-text');
-  const ctaLabel =
-    ctaVariant === 'A' ? 'Request This Placement' : 'Get Started Now';
 
   useEffect(() => {
     getAdSlot(id)
@@ -120,19 +118,15 @@ export function AdSlotDetail({ id }: Props) {
   const handleBooking = async () => {
     if (!roleInfo?.sponsorId || !adSlot) return;
 
-    trackButtonClick(ctaLabel, 'marketplace_detail', {
+    trackButtonClick('Request This Placement', 'marketplace_detail', {
       listing_id: adSlot.id,
       listing_type: adSlot.type,
       listing_name: adSlot.name,
-      ab_test: 'cta-button-text',
-      ab_variant: ctaVariant,
     });
     trackMicroConversion('cta_click', {
       cta_name: 'request_placement',
       listing_id: adSlot.id,
       listing_type: adSlot.type,
-      ab_test: 'cta-button-text',
-      ab_variant: ctaVariant,
     });
 
     setBooking(true);
@@ -355,24 +349,7 @@ export function AdSlotDetail({ id }: Props) {
 
         {adSlot.isAvailable && !bookingSuccess && (
           <div className="mt-6 border-t border-[--color-border] pt-6">
-            <div className="mb-2 flex items-center gap-2 text-xs text-[--color-muted]">
-              <span>A/B test:</span>
-              <Link
-                href={`/marketplace/${id}?ab_override=A`}
-                className="underline hover:text-[--color-foreground]"
-              >
-                See variant A
-              </Link>
-              <span>|</span>
-              <Link
-                href={`/marketplace/${id}?ab_override=B`}
-                className="underline hover:text-[--color-foreground]"
-              >
-                See variant B
-              </Link>
-              <span>(current: {ctaVariant})</span>
-            </div>
-            <h2 className="mb-4 text-lg font-semibold">{ctaLabel}</h2>
+            <h2 className="mb-4 text-lg font-semibold">Request This Placement</h2>
 
             {roleLoading ? (
               <div className="py-4 text-center text-[--color-muted]">Loading...</div>
@@ -406,7 +383,14 @@ export function AdSlotDetail({ id }: Props) {
                   disabled={booking}
                   className="w-full rounded-lg bg-[--color-primary] px-4 py-3 font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
                 >
-                  {booking ? 'Booking...' : ctaLabel}
+                  {booking ? 'Booking...' : 'Request This Placement'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQuoteModal(true)}
+                  className="w-full rounded-lg border border-[--color-border] px-4 py-2 text-sm font-semibold text-[--color-primary] hover:bg-[--color-muted]/5"
+                >
+                  Request a quote instead
                 </button>
               </div>
             ) : (
@@ -415,13 +399,20 @@ export function AdSlotDetail({ id }: Props) {
                   disabled
                   className="w-full cursor-not-allowed rounded-lg bg-gray-300 px-4 py-3 font-semibold text-gray-500"
                 >
-                  {ctaLabel}
+                  Request This Placement
                 </button>
                 <p className="mt-2 text-center text-sm text-[--color-muted]">
                   {user
                     ? 'Only sponsors can request placements'
                     : 'Log in as a sponsor to request this placement'}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setShowQuoteModal(true)}
+                  className="mt-3 w-full rounded-lg border border-[--color-border] px-4 py-2 text-sm font-semibold text-[--color-primary] hover:bg-[--color-muted]/5"
+                >
+                  Request a quote
+                </button>
               </div>
             )}
           </div>
@@ -468,10 +459,18 @@ export function AdSlotDetail({ id }: Props) {
               const updated = await getAdSlot(id);
               setAdSlot(updated as AdSlot);
             } catch {
+              setError('Failed to load ad slot details');
             } finally {
               setLoading(false);
             }
           }}
+        />
+      )}
+      {showQuoteModal && adSlot && (
+        <RequestQuoteModal
+          adSlotId={adSlot.id}
+          adSlotName={adSlot.name}
+          onClose={() => setShowQuoteModal(false)}
         />
       )}
     </div>

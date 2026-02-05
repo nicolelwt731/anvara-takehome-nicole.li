@@ -21,10 +21,8 @@ export const trackEvent = (eventName: string, eventParams?: EventParams): void =
       ...eventParams,
       timestamp: Date.now(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('GA4 tracking error:', error);
-    }
+  } catch {
+    return;
   }
 };
 

@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-undef
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
 export async function api<T>(endpoint: string, options?: globalThis.RequestInit): Promise<T> {
@@ -39,3 +38,33 @@ export const createPlacement = (data: unknown) =>
 
 // Dashboard
 export const getStats = () => api<unknown>('/api/dashboard/stats');
+
+export const subscribeNewsletter = (email: string) =>
+  api<{ success: boolean; message: string }>('/api/newsletter/subscribe', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+
+export const unsubscribeNewsletter = (email: string) =>
+  api<{ success: boolean; message: string }>('/api/newsletter/unsubscribe', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+
+export type QuoteRequestPayload = {
+  email: string;
+  companyName: string;
+  adSlotId: string;
+  adSlotName: string;
+  phone?: string;
+  budget?: string;
+  goals?: string;
+  timeline?: string;
+  requirements?: string;
+};
+
+export const requestQuote = (payload: QuoteRequestPayload) =>
+  api<{ success: boolean; quoteId: string }>('/api/quotes/request', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
