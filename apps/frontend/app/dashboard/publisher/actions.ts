@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-// eslint-disable-next-line no-undef
 const API_URL = (process.env.NEXT_PUBLIC_API_URL as string) || 'http://localhost:4291';
 
 interface FormState {

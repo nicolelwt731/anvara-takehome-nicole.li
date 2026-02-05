@@ -1,7 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { Pool } from 'pg';
 
-// eslint-disable-next-line no-undef
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error('DATABASE_URL environment variable is required');
@@ -9,9 +8,7 @@ if (!connectionString) {
 
 export const auth = betterAuth({
   database: new Pool({ connectionString }),
-  // eslint-disable-next-line no-undef
   secret: process.env.BETTER_AUTH_SECRET || 'fallback-secret-for-dev',
-  // eslint-disable-next-line no-undef
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3847',
   emailAndPassword: {
     enabled: true,

@@ -4,7 +4,6 @@ import { auth } from '@/auth';
 import { getUserRole } from '@/lib/auth-helpers';
 import { AdSlotList } from './components/ad-slot-list';
 
-// eslint-disable-next-line no-undef
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
 async function getAdSlots(publisherId: string) {

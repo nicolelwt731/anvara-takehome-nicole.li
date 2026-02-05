@@ -468,6 +468,7 @@ export function AdSlotDetail({ id }: Props) {
               const updated = await getAdSlot(id);
               setAdSlot(updated as AdSlot);
             } catch {
+              setError('Failed to load ad slot details');
             } finally {
               setLoading(false);
             }
