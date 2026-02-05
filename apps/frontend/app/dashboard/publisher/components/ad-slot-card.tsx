@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteAdSlot } from '../actions';
 import { AdSlotForm } from './ad-slot-form';
+import { trackManagementEvent, trackButtonClick } from '@/lib/analytics';
 
 interface AdSlotCardProps {
   adSlot: {
@@ -37,11 +38,23 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
       return;
     }
 
+    // Track button click
+    trackButtonClick('Delete Ad Slot', 'ad_slot_card', {
+      ad_slot_id: adSlot.id,
+      ad_slot_name: adSlot.name,
+      ad_slot_type: adSlot.type,
+    });
+
     startTransition(async () => {
       const result = await deleteAdSlot(adSlot.id);
       if (result.error) {
         setError(result.error);
       } else {
+        // Track successful deletion
+        trackManagementEvent('delete', 'ad_slot', adSlot.id, {
+          ad_slot_name: adSlot.name,
+          ad_slot_type: adSlot.type,
+        });
         router.replace('/dashboard/publisher');
       }
     });
@@ -86,7 +99,12 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
 
         <div className="flex gap-2">
           <button
-            onClick={() => setShowEditForm(true)}
+            onClick={() => {
+              trackButtonClick('Edit Ad Slot', 'ad_slot_card', {
+                ad_slot_id: adSlot.id,
+              });
+              setShowEditForm(true);
+            }}
             className="flex-1 rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             Edit

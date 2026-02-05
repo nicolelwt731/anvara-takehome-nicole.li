@@ -1,3 +1,7 @@
+'use client';
+
+import Link from 'next/link';
+import { trackButtonClick } from '@/lib/analytics';
 
 // TODO: This should be a marketing landing page, not just a simple welcome screen
 // TODO: Add proper metadata for SEO (title, description, Open Graph)
@@ -13,12 +17,15 @@ export default function Home() {
       </p>
 
       <div className="flex gap-4">
-        <a
+        <Link
           href="/login"
+          onClick={() => {
+            trackButtonClick('Get Started', 'home_page');
+          }}
           className="rounded-lg bg-[--color-primary] px-6 py-3 text-white hover:bg-[--color-primary-hover]"
         >
           Get Started
-        </a>
+        </Link>
       </div>
 
       <div className="mt-16 grid gap-8 text-left sm:grid-cols-2">

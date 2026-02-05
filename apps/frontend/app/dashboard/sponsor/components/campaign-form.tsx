@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { createCampaign, updateCampaign } from '../actions';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { trackFormSubmit, trackManagementEvent } from '@/lib/analytics';
 
 interface Campaign {
   id: string;
@@ -51,12 +52,26 @@ export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
 
   useEffect(() => {
     if (state.success) {
+      // Track form submission success
+      trackFormSubmit('campaign_form', isEditing ? 'update' : 'create', true, {
+        campaign_id: campaign?.id,
+      });
+      
+      // Track management event
+      trackManagementEvent(isEditing ? 'update' : 'create', 'campaign', campaign?.id);
+      
       onClose();
       setTimeout(() => {
         router.replace('/dashboard/sponsor');
       }, 100);
+    } else if (state.error) {
+      // Track form submission failure
+      trackFormSubmit('campaign_form', isEditing ? 'update' : 'create', false, {
+        campaign_id: campaign?.id,
+        error: state.error,
+      });
     }
-  }, [state.success, onClose, router]);
+  }, [state.success, state.error, isEditing, campaign?.id, onClose, router]);
 
   const formatDateForInput = (dateString: string) => {
     return dateString ? dateString.split('T')[0] : '';

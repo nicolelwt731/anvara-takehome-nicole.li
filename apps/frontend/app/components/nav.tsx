@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { authClient } from '@/auth-client';
+import { trackUserEngagement } from '@/lib/analytics';
 
 type UserRole = 'sponsor' | 'publisher' | null;
 
@@ -74,6 +75,11 @@ export function Nav() {
               </span>
               <button
                 onClick={async () => {
+                  // Track logout before signing out
+                  trackUserEngagement('logout', role || undefined, {
+                    user_id: user?.id,
+                  });
+                  
                   await authClient.signOut({
                     fetchOptions: {
                       onSuccess: () => {

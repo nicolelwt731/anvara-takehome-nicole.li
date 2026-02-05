@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { createAdSlot, updateAdSlot } from '../actions';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { trackFormSubmit, trackManagementEvent } from '@/lib/analytics';
 
 interface AdSlot {
   id: string;
@@ -49,10 +50,25 @@ export function AdSlotForm({ adSlot, onClose }: AdSlotFormProps) {
 
   useEffect(() => {
     if (state.success) {
+      // Track form submission success
+      trackFormSubmit('ad_slot_form', isEditing ? 'update' : 'create', true, {
+        ad_slot_id: adSlot?.id,
+        ad_slot_type: adSlot?.type,
+      });
+      
+      // Track management event
+      trackManagementEvent(isEditing ? 'update' : 'create', 'ad_slot', adSlot?.id);
+      
       onClose();
       router.replace('/dashboard/publisher');
+    } else if (state.error) {
+      // Track form submission failure
+      trackFormSubmit('ad_slot_form', isEditing ? 'update' : 'create', false, {
+        ad_slot_id: adSlot?.id,
+        error: state.error,
+      });
     }
-  }, [state.success, onClose, router]);
+  }, [state.success, state.error, isEditing, adSlot?.id, adSlot?.type, onClose, router]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">

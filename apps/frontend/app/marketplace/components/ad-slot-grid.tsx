@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getAdSlots } from '@/lib/api';
+import {
+  trackMarketplaceEvent,
+  trackButtonClick,
+  trackMicroConversion,
+} from '@/lib/analytics';
 
 const typeColors: Record<string, string> = {
   DISPLAY: 'bg-blue-100 text-blue-700',
@@ -30,7 +35,18 @@ export function AdSlotGrid() {
 
   useEffect(() => {
     getAdSlots()
-      .then((data) => setAdSlots(data as AdSlot[]))
+      .then((data) => {
+        const slots = data as AdSlot[];
+        setAdSlots(slots);
+        trackMarketplaceEvent('view_listing', undefined, undefined, {
+          total_listings: slots.length,
+          available_listings: slots.filter((s) => s.isAvailable).length,
+        });
+        trackMicroConversion('marketplace_grid_view', {
+          total_listings: slots.length,
+          available_listings: slots.filter((s) => s.isAvailable).length,
+        });
+      })
       .catch(() => setError('Failed to load ad slots'))
       .finally(() => setLoading(false));
   }, []);
@@ -57,6 +73,23 @@ export function AdSlotGrid() {
         <Link
           key={slot.id}
           href={`/marketplace/${slot.id}`}
+          onClick={() => {
+            trackButtonClick('View Listing', 'marketplace_grid', {
+              listing_id: slot.id,
+              listing_type: slot.type,
+              listing_name: slot.name,
+            });
+            trackMicroConversion('cta_click', {
+              cta_name: 'view_listing',
+              listing_id: slot.id,
+              listing_type: slot.type,
+            });
+            trackMarketplaceEvent('view_listing', slot.id, slot.type, {
+              listing_name: slot.name,
+              base_price: slot.basePrice,
+              is_available: slot.isAvailable,
+            });
+          }}
           className="block rounded-lg border border-[--color-border] p-4 transition-shadow hover:shadow-md"
         >
           <div className="mb-2 flex items-start justify-between">

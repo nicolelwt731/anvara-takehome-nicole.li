@@ -4,8 +4,8 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { authClient } from '@/auth-client';
+import { trackUserEngagement, trackMacroConversion } from '@/lib/analytics';
 
-// eslint-disable-next-line no-undef
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291';
 
 const STORAGE_KEY = 'anvara_last_login';
@@ -30,7 +30,6 @@ export default function LoginPage() {
     if (stored) {
       try {
         const loginData: StoredLogin = JSON.parse(stored);
-        // Use setTimeout to avoid synchronous setState in effect
         const timer = setTimeout(() => {
           setEmail(loginData.email);
           setPassword(loginData.password);
@@ -73,6 +72,12 @@ export default function LoginPage() {
               const role = roleData.role === 'sponsor' ? 'sponsor' : 'publisher';
 
               saveLoginInfo(email, password, role);
+
+              trackUserEngagement('login', role, { user_id: userId });
+              trackMacroConversion('login_success', {
+                user_id: userId,
+                user_role: role,
+              });
 
               if (roleData.role === 'sponsor') {
                 router.push('/dashboard/sponsor');

@@ -1,28 +1,26 @@
 import type { Metadata } from 'next';
 import React from 'react';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 import { Nav } from './components/nav';
-
-// TODO: Add ErrorBoundary wrapper for graceful error handling
-// TODO: Consider adding a loading.tsx for Suspense boundaries
-// TODO: Add Open Graph metadata for social media sharing
-// TODO: Add Twitter Card metadata
-// TODO: Consider adding favicon and app icons
+import { AnalyticsProvider } from './components/analytics-provider';
 
 export const metadata: Metadata = {
   title: 'Anvara Marketplace',
   description: 'Sponsorship marketplace connecting sponsors with publishers',
-  // Missing: openGraph, twitter, icons, viewport, etc.
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // HINT: If using React Query, you would wrap children with QueryClientProvider here
-  // See: https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr
+  const envGaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const gaId = envGaId || (process.env.NODE_ENV === 'development' ? 'G-DEMO000000' : undefined);
+
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
         <Nav />
+        <AnalyticsProvider />
         <main className="mx-auto max-w-6xl p-4">{children}</main>
+        {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
   );
