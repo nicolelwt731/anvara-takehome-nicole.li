@@ -1,5 +1,5 @@
 // Seed script for populating the database with sample data
-import { PrismaClient } from '../src/generated/prisma/client.js';
+import { PrismaClient, AdSlotType } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from 'better-auth/crypto';
 import pg from 'pg';
@@ -241,7 +241,17 @@ async function main() {
   });
 
   // Create 20 ad slots with variety
-  const adSlots = [
+  const adSlots: Array<{
+    name: string;
+    description: string;
+    type: AdSlotType;
+    position: string;
+    width?: number;
+    height?: number;
+    basePrice: number;
+    publisherId: string;
+    isAvailable: boolean;
+  }> = [
     // Dev Blog Daily slots
     {
       name: 'Header Banner',
@@ -446,9 +456,7 @@ async function main() {
     },
   ];
 
-  for (const slot of adSlots) {
-    await prisma.adSlot.create({ data: slot });
-  }
+  await Promise.all(adSlots.map((slot) => prisma.adSlot.create({ data: slot })));
 
   // Create campaigns
   await prisma.campaign.create({
