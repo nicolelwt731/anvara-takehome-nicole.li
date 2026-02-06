@@ -47,27 +47,43 @@ export function AdSlotGrid({ filter = 'all', searchQuery = '' }: AdSlotGridProps
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
+    });
     getAdSlots()
       .then((raw) => {
+        if (cancelled) return;
         const list = Array.isArray(raw) ? raw : [];
-        const slots: AdSlot[] = list.map((item: Record<string, unknown>) => ({
-          id: String(item.id ?? ''),
-          name: String(item.name ?? ''),
-          description: item.description != null ? String(item.description) : undefined,
-          type: String(item.type ?? ''),
-          basePrice: toNumber(item.basePrice),
-          isAvailable: Boolean(item.isAvailable),
-          publisher: (item.publisher as { name?: string } | undefined)?.name
-            ? { name: (item.publisher as { name: string }).name }
-            : undefined,
-          imageUrl: getImageByCategory(String(item.type ?? ''), String(item.name ?? '')),
-        }));
+        const slots: AdSlot[] = list.map((item: unknown) => {
+          const i = item as Record<string, unknown>;
+          return {
+            id: String(i.id ?? ''),
+            name: String(i.name ?? ''),
+            description: i.description != null ? String(i.description) : undefined,
+            type: String(i.type ?? ''),
+            basePrice: toNumber(i.basePrice),
+            isAvailable: Boolean(i.isAvailable),
+            publisher: (i.publisher as { name?: string } | undefined)?.name
+              ? { name: (i.publisher as { name: string }).name }
+              : undefined,
+            imageUrl: getImageByCategory(String(i.type ?? ''), String(i.name ?? '')),
+          };
+        });
         setAdSlots(slots);
       })
-      .catch(() => setError('Failed to load marketplace'))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setError('Failed to load marketplace');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredSlots = adSlots.filter((slot) => {

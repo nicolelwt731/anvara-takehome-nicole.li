@@ -56,9 +56,10 @@ export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
 
   const [state, formAction] = useActionState(action, {});
 
-  useEffect(() => {
-    if (startDate && endDate && endDate < startDate) setEndDate(startDate);
-  }, [startDate]);
+  const handleStartDateChange = (value: string) => {
+    setStartDate(value);
+    setEndDate((prev) => (prev && value && prev < value ? value : prev));
+  };
 
   useEffect(() => {
     if (state.success) {
@@ -172,7 +173,7 @@ export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
               <DatePicker
                 id="startDate"
                 value={startDate}
-                onChange={setStartDate}
+                onChange={handleStartDateChange}
                 min={new Date()}
                 placeholder="Select start date"
                 className="mt-1 block w-full rounded-lg border border-[--color-border] bg-[--color-background] px-4 py-2.5 text-white placeholder-[--color-muted] shadow-sm transition-all duration-200 focus:border-[--color-primary] focus:outline-none focus:ring-2 focus:ring-[--color-primary]/20"
