@@ -30,31 +30,12 @@ interface ABSlotCardProps {
   slot: AdSlot;
 }
 
-/**
- * AdSlot card with A/B testing for CTA button text
- *
- * Flow:
- * 1. useABTest('marketplace-cta') assigns variant A or B on first visit
- * 2. Variant is stored in localStorage (persistent across sessions)
- * 3. Button text changes based on assigned variant
- * 4. onClick event tracks which variant was clicked + conversion
- *
- * Debug/Testing:
- * - Visit: /?ab_override_marketplace-cta=A (force variant A)
- * - Visit: /?ab_override_marketplace-cta=B (force variant B)
- * - localStorage shows: anvara_ab_marketplace-cta = "A" or "B"
- */
 export function ABSlotCard({ slot }: ABSlotCardProps) {
-  // Get assigned variant (A or B)
-  // First visit: randomly assigns 50/50
-  // Subsequent visits: returns same variant from localStorage
   const ctaVariant = useABTest('marketplace-cta');
 
-  // Different button text per variant
   const ctaText = ctaVariant === 'A' ? 'Request This Placement' : 'Get Started Now';
 
   const handleClick = () => {
-    // Track button click with variant info
     trackButtonClick('View Listing', 'marketplace_grid', {
       listing_id: slot.id,
       listing_type: slot.type,
@@ -63,7 +44,6 @@ export function ABSlotCard({ slot }: ABSlotCardProps) {
       cta_text: ctaText,
     });
 
-    // Track micro conversion (user interaction with CTA)
     trackMicroConversion('cta_click', {
       cta_name: 'view_listing',
       listing_id: slot.id,
@@ -72,7 +52,6 @@ export function ABSlotCard({ slot }: ABSlotCardProps) {
       ab_test: 'marketplace-cta',
     });
 
-    // Track marketplace event with variant
     trackMarketplaceEvent('view_listing', slot.id, slot.type, {
       listing_name: slot.name,
       base_price: slot.basePrice,
@@ -156,7 +135,6 @@ export function ABSlotCard({ slot }: ABSlotCardProps) {
         onClick={(e) => {
           e.preventDefault();
           handleClick();
-          // Navigate after tracking
           window.location.href = `/marketplace/${slot.id}`;
         }}
       >
